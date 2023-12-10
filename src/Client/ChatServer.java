@@ -99,29 +99,6 @@ public class ChatServer extends JFrame {
         contentPane.add(btnServerStart);
     }
 
-    public synchronized void playerReady(String playerName) {
-        if (playerName.equals("Player1")) {
-            player1Ready = true;
-            AppendText("Player1 is ready.");
-        } else if (playerName.equals("Player2")) {
-            player2Ready = true;
-            AppendText("Player2 is ready.");
-        }
-
-        if (player1Ready && player2Ready) {
-            AppendText("Both players are ready. Starting the game...");
-
-            // 게임 시작 메시지를 두 플레이어에게 보내기
-            for (UserService user : UserVec) {
-                user.WriteOne("/startGame");
-            }
-
-            // 게임 시작 후 준비 상태 초기화
-            player1Ready = false;
-            player2Ready = false;
-        }
-    }
-
 
 
     class AcceptServer extends Thread {
@@ -213,14 +190,11 @@ public class ChatServer extends JFrame {
 
                     if (areAllPlayersReady()) {
                         AppendText("Both players are ready. Starting the game...");
-
-                        // 게임 시작 화면으로 전환 또는 다른 처리를 수행할 부분
-                        // 예시: GameStart 클래스의 인스턴스를 생성하여 보여주고 현재 프레임을 숨김
-                        GameStart gameStart = new GameStart();
-                        gameStart.setVisible(true);
+                        WriteAll("/startGame");
 
                         // 게임 시작 후 준비 상태 초기화
-                        setPlayerReadyStatus(false);
+                        player1Ready = false;
+                        player2Ready = false;
                     }
                 }
             }
