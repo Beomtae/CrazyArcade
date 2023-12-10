@@ -2,6 +2,7 @@ package Client;
 
 import javaProj.GameStart;
 
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.DataInputStream;
@@ -21,7 +22,6 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 
-
 public class ClientView extends JFrame {
     private JPanel contentPane;
     private JTextField txtInput;
@@ -30,20 +30,16 @@ public class ClientView extends JFrame {
     private JButton btnGameReady;
     private JTextArea textArea;
 
-    private JLabel lblStatus; // 새로운 JLabel 필드 추가
-
+    private JLabel lblStatus;
     private boolean playerReady = false;
-    private static final int BUF_LEN = 128; // Windows 처럼 BUF_LEN 을 정의
-    private Socket socket; // 연결소켓
+    private static final int BUF_LEN = 128;
+    private Socket socket;
     private InputStream is;
     private OutputStream os;
     private DataInputStream dis;
     private DataOutputStream dos;
     private JLabel lblUserName;
 
-    /**
-     * Create the frame.
-     */
     public ClientView(String username, String ip_addr, String port_no) {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 392, 462);
@@ -72,16 +68,14 @@ public class ClientView extends JFrame {
         btnGameReady = new JButton("게임 준비");
         btnGameReady.setBounds(12, 415, 352, 40);
         contentPane.add(btnGameReady);
-        // 게임 준비 버튼에 액션 리스너 추가
         btnGameReady.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // 양쪽 플레이어 모두 게임 준비 버튼을 누르면 게임화면으로 전환
-
-               showWaitingMessage();
-               SendMessage("/startGame");
+                showWaitingMessage();
+                SendMessage("/ready " + UserName);
             }
         });
+
 
         lblUserName = new JLabel("Name");
         lblUserName.setHorizontalAlignment(SwingConstants.CENTER);
@@ -108,7 +102,7 @@ public class ClientView extends JFrame {
             ListenNetwork net = new ListenNetwork();
             net.start();
             Myaction action = new Myaction();
-            btnSend.addActionListener(action); // 내부클래스로 액션 리스너를 상속받은 클래스로
+            btnSend.addActionListener(action);
             txtInput.addActionListener(action);
             txtInput.requestFocus();
         } catch (NumberFormatException | IOException e) {
@@ -117,16 +111,17 @@ public class ClientView extends JFrame {
         }
     }
 
-    // Server Message를 수신해서 화면에 표시
     class ListenNetwork extends Thread {
         public void run() {
             while (true) {
                 try {
-                    // Use readUTF to read messages
                     String msg = dis.readUTF();
                     if (msg.equals("/startGame")) {
-                        // 게임 시작 메시지를 받으면 게임 화면을 표시
+                        // 게임 시작 메시지를 받으면 게임 화면으로 전환
                         showGameStartScreen();
+                    } else if (msg.endsWith(" is ready")) {
+                        // 사용자가 준비 완료 메시지를 받으면 어떤 사용자가 준비 완료했는지 표시
+                        AppendText(msg);
                     } else {
                         AppendText(msg);
                     }
@@ -145,34 +140,29 @@ public class ClientView extends JFrame {
         }
     }
 
-    // keyboard enter key 치면 서버로 전송
-    class Myaction implements ActionListener // 내부클래스로 액션 이벤트 처리 클래스
-    {
+
+
+    class Myaction implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            // Send button을 누르거나 메시지 입력하고 Enter key 치면
             if (e.getSource() == btnSend || e.getSource() == txtInput) {
-                String msg = null;
-                msg = String.format("[%s] %s\n", UserName, txtInput.getText());
+                String msg = String.format("[%s] %s\n", UserName, txtInput.getText());
                 SendMessage(msg);
-                txtInput.setText(""); // 메세지를 보내고 나면 메세지 쓰는창을 비운다.
-                txtInput.requestFocus(); // 메세지를 보내고 커서를 다시 텍스트 필드로 위치시킨다
-                if (msg.contains("/exit")) // 종료 처리
+                txtInput.setText("");
+                txtInput.requestFocus();
+                if (msg.contains("/exit"))
                     System.exit(0);
             }
         }
     }
 
-    // 화면에 출력
     public void AppendText(String msg) {
         textArea.append(msg);
         textArea.setCaretPosition(textArea.getText().length());
     }
 
-    // Server에게 network으로 전송
     public void SendMessage(String msg) {
         try {
-            // Use writeUTF to send messages
             dos.writeUTF(msg);
         } catch (IOException e) {
             AppendText("dos.write() error");
@@ -187,11 +177,10 @@ public class ClientView extends JFrame {
         }
     }
 
-    // 게임 시작 화면을 표시하는 메서드
     private void showGameStartScreen() {
         GameStart gameStartView = new GameStart();
         gameStartView.setVisible(true);
-        dispose(); // 현재 창 닫기
+        setVisible(false);
     }
 
     private void showWaitingMessage() {
